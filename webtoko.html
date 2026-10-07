@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tiga Saudara Store ID - Web Toko & Akses Pelanggan</title>
+    <!-- SDK Firebase Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0f172a; --card-dark: #1e293b; --deep-sapphire: #001d3d;
+            --gold: #ffd700; --gold-hover: #e6c200; --text-light: #f8fafc;
+            --text-muted: #94a3b8; --border-color: #334155; --success: #22c55e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-light); padding-bottom: 40px; }
+
+        header {
+            background: linear-gradient(135deg, var(--deep-sapphire), #000814);
+            color: var(--text-light); padding: 25px 20px; position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); border-bottom: 2px solid var(--gold);
+        }
+        .header-content { max-width: 1000px; margin: 0 auto; text-align: center; }
+        header h1 { font-size: 2rem; color: var(--gold); }
+        header p.slogan { font-style: italic; color: var(--text-muted); font-size: 0.9rem; }
+
+        .header-actions { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; }
+        .btn-header {
+            background: var(--gold); color: #000; border: none; padding: 8px 14px;
+            border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem;
+        }
+        .cart-badge { background: #000; color: var(--gold); border-radius: 50%; padding: 2px 6px; font-size: 0.75rem; }
+
+        .container { max-width: 1000px; margin: 20px auto; padding: 0 15px; }
+        .section-title { text-align: center; margin-bottom: 20px; font-size: 1.6rem; color: var(--gold); }
+
+        .user-status-bar {
+            background: var(--card-dark); padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color);
+        }
+
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+        .product-card {
+            background: var(--card-dark); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 15px; display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .product-img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 12px; background: #0f172a; }
+        .product-title { font-size: 1.15rem; font-weight: bold; color: var(--gold); margin-bottom: 5px; }
+        .stock-tag { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; }
+
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 0.85rem; margin-bottom: 5px; color: var(--text-light); }
+        
+        .variant-buttons-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .btn-variant-pill {
+            background: #0f172a; color: var(--text-light); border: 1px solid var(--border-color);
+            padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-variant-pill.active { background: var(--gold); color: #000; font-weight: bold; border-color: var(--gold); }
+
+        input[type="number"], input[type="text"], input[type="password"] {
+            width: 100%; padding: 10px; background-color: var(--bg-dark);
+            color: var(--text-light); border: 1px solid var(--border-color); border-radius: 6px; outline: none;
+        }
+
+        .btn-add {
+            background-color: var(--gold); color: #000; border: none; padding: 11px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 8px;
+        }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 2000; padding: 15px;
+        }
+        .modal-content {
+            background: var(--card-dark); color: var(--text-light); border: 1px solid var(--gold);
+            padding: 20px; border-radius: 12px; max-width: 450px; width: 100%; max-height: 85vh; overflow-y: auto;
+        }
+        .modal-header { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; color: var(--gold); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .cart-item { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; }
+
+        .btn-checkout { background: #25d366; color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .btn-close { background: #475569; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; margin-top: 8px; }
+        
+        .tab-btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 8px; background: var(--bg-dark); color: var(--text-muted); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; }
+        .tab-btn.active { background: var(--gold); color: #000; font-weight: bold; border-color: var(--gold); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-actions">
+            <button class="btn-header" onclick="openAuthModal()" id="authHeaderBtn">🔑 Login / Daftar</button>
+            <button class="btn-header" onclick="openCartModal()">🛒 <span class="cart-badge" id="headerCartCount">0</span></button>
+        </div>
+        <div class="header-content">
+            <h1>Tiga Saudara Store ID</h1>
+            <p class="slogan">"Kepuasan Pelanggan Adalah Tujuan Utama Kami"</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="user-status-bar" id="userStatusBar">
+            <span id="userGreetingTag">👋 Selamat datang, Pelanggan!</span>
+            <a href="admin.html" style="color:var(--gold); font-size:0.85rem; text-decoration:none;">⚙️ Akses Admin</a>
+        </div>
+
+        <h2 class="section-title">Pilihan Menu Snack</h2>
+        <div class="menu-grid" id="menuGrid"></div>
+    </div>
+
+    <!-- MODAL AUTHENTICATION (LOGIN / DAFTAR AKUN) -->
+    <div class="modal" id="authModal">
+        <div class="modal-content">
+            <div class="tab-btn-group">
+                <button class="tab-btn active" id="tabLoginBtn" onclick="switchAuthTab('login')">Masuk (Login)</button>
+                <button class="tab-btn" id="tabRegisterBtn" onclick="switchAuthTab('register')">Daftar Akun</button>
+            </div>
+
+            <!-- FORM LOGIN -->
+            <div id="formLoginContainer">
+                <div class="form-group">
+                    <label>No. WhatsApp / ID Pelanggan:</label>
+                    <input type="text" id="loginPhone" placeholder="Contoh: 08123456789">
+                </div>
+                <div class="form-group">
+                    <label>Sandi / Password:</label>
+                    <input type="password" id="loginPassword" placeholder="Masukkan sandi...">
+                </div>
+                <button class="btn-add" onclick="processCustomerLogin()">Masuk Ke Akun</button>
+            </div>
+
+            <!-- FORM DAFTAR -->
+            <div id="formRegisterContainer" style="display:none;">
+                <div class="form-group">
+                    <label>Nama Lengkap Anda:</label>
+                    <input type="text" id="regName" placeholder="Contoh: Budi Santoso">
+                </div>
+                <div class="form-group">
+                    <label>No. WhatsApp Aktif:</label>
+                    <input type="text" id="regPhone" placeholder="Contoh: 08123456789">
+                </div>
+                <div class="form-group">
+                    <label>Buat Sandi / Password:</label>
+                    <input type="password" id="regPassword" placeholder="Buat sandi baru...">
+                </div>
+                <button class="btn-add" onclick="processCustomerRegister()">Daftarkan Akun Baru</button>
+            </div>
+
+            <button class="btn-close" onclick="closeAuthModal()">Tutup</button>
+        </div>
+    </div>
+
+    <!-- MODAL KERANJANG -->
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <div class="modal-header">🛒 Keranjang Belanja Anda</div>
+            <div id="cartItems"></div>
+            
+            <div style="margin-top: 15px;">
+                <label style="font-weight: bold; font-size: 0.9rem;">Pilih Metode Pembayaran:</label>
+                <select id="paymentMain" onchange="handlePaymentChange()" style="width: 100%; padding: 9px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 6px;">
+                    <option value="Tunai">Tunai</option>
+                    <option value="Via Bank / E-Wallet">Via Bank / E-Wallet</option>
+                    <option value="QRIS">QRIS DANA</option>
+                </select>
+            </div>
+
+            <div id="qrisContainer" style="display:none; text-align:center; margin-top:10px; background:#0f172a; padding:10px; border-radius:8px;">
+                <p style="color:var(--gold); font-weight:bold;">Scan QRIS DANA</p>
+                <img id="qrisImage" src="" style="width:150px; height:150px; background:white; margin:10px 0; padding:5px;">
+                <p style="font-size:0.8rem;">DANA: 085788718308 a.n Tiga Saudara Store</p>
+            </div>
+
+            <button class="btn-checkout" onclick="sendToWhatsAppAdmin()">Kirim Pesanan ke WhatsApp Admin</button>
+            <button class="btn-close" onclick="closeCartModal()">Tutup</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBs6aTATHH5kTR1Ri1ys84tdrNOQs89RWo",
+            authDomain: "tiga-saudara-store-id.firebaseapp.com",
+            projectId: "tiga-saudara-store-id",
+            storageBucket: "tiga-saudara-store-id.firebasestorage.app",
+            messagingSenderId: "393533553955",
+            appId: "1:393533553955:web:11db5be2de33efee656096",
+            databaseURL: "https://tiga-saudara-store-id-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentUser = JSON.parse(localStorage.getItem('TSS_LOGGED_CUSTOMER')) || null;
+        let customersData = {};
+
+        const defaultProducts = {
+            'mielidi': { name: 'A. Mie Lidi YOI', price: 10000, stock: 50, img: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400', variants: ['Level 5', 'Pedas Daun Jeruk', 'Seblak', 'Original'] },
+            'maccaroni': { name: 'B. Maccaroni', price: 10000, stock: 40, img: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400', variants: ['Original', 'Pedas Level 5', 'Bbq', 'Keju', 'Pedas Daun Jeruk'] },
+            'basreng': { name: 'C. Basreng', price: 12000, stock: 35, img: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400', variants: ['Pedas Level 5', 'Bbq', 'Rendang', 'Asin Daun Jeruk', 'Pedas Daun Keruk'] },
+            'pilus': { name: 'D. Pilus', price: 8000, stock: 60, img: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400', variants: ['Sapi Panggang', 'Original', 'Ayam Bawang', 'Pedas Daun Jeruk', 'Rumput Laut'] }
+        };
+
+        let products = JSON.parse(localStorage.getItem('TSS_STORE_PRODUCTS')) || defaultProducts;
+        let selectedVariants = {};
+        let cart = [];
+
+        // LOAD REALTIME DATA FIREBASE
+        db.ref('products').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(data) { products = data; localStorage.setItem('TSS_STORE_PRODUCTS', JSON.stringify(data)); }
+            else { db.ref('products').set(defaultProducts); }
+            renderMenu();
+        });
+
+        db.ref('customers').on('value', (snapshot) => {
+            if(snapshot.val()) customersData = snapshot.val();
+        });
+
+        function checkUserLoginState() {
+            const greeting = document.getElementById('userGreetingTag');
+            const authBtn = document.getElementById('authHeaderBtn');
+
+            if(currentUser) {
+                greeting.innerText = `👋 Halo, ${currentUser.name} (${currentUser.phone})`;
+                authBtn.innerText = "Keluar";
+                authBtn.onclick = processCustomerLogout;
+            } else {
+                greeting.innerText = `👋 Selamat datang, Pelanggan!`;
+                authBtn.innerText = "🔑 Login / Daftar";
+                authBtn.onclick = openAuthModal;
+            }
+        }
+
+        function openAuthModal() { document.getElementById('authModal').style.display = 'flex'; }
+        function closeAuthModal() { document.getElementById('authModal').style.display = 'none'; }
+
+        function switchAuthTab(type) {
+            if(type === 'login') {
+                document.getElementById('formLoginContainer').style.display = 'block';
+                document.getElementById('formRegisterContainer').style.display = 'none';
+                document.getElementById('tabLoginBtn').className = 'tab-btn active';
+                document.getElementById('tabRegisterBtn').className = 'tab-btn';
+            } else {
+                document.getElementById('formLoginContainer').style.display = 'none';
+                document.getElementById('formRegisterContainer').style.display = 'block';
+                document.getElementById('tabLoginBtn').className = 'tab-btn';
+                document.getElementById('tabRegisterBtn').className = 'tab-btn active';
+            }
+        }
+
+        function processCustomerRegister() {
+            const name = document.getElementById('regName').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const pass = document.getElementById('regPassword').value.trim();
+
+            if(!name || !phone || !pass) return alert("Lengkapi semua bidang!");
+
+            const newCust = { name: name, phone: phone, pass: pass };
+            db.ref('customers/' + phone).set(newCust, (err) => {
+                if(!err) {
+                    alert("✅ Pendaftaran berhasil! Silakan masuk dengan nomor WhatsApp Anda.");
+                    switchAuthTab('login');
+                } else {
+                    alert("Gagal mendaftar: " + err.message);
+                }
+            });
+        }
+
+        function processCustomerLogin() {
+            const phone = document.getElementById('loginPhone').value.trim();
+            const pass = document.getElementById('loginPassword').value.trim();
+
+            if(!phone || !pass) return alert("Masukkan No. WA dan Sandi!");
+
+            if(customersData[phone] && customersData[phone].pass === pass) {
+                currentUser = customersData[phone];
+                localStorage.setItem('TSS_LOGGED_CUSTOMER', JSON.stringify(currentUser));
+                checkUserLoginState();
+                closeAuthModal();
+                alert(`✅ Selamat datang kembali, ${currentUser.name}!`);
+            } else {
+                alert("No. WhatsApp atau Sandi salah / belum terdaftar!");
+            }
+        }
+
+        function processCustomerLogout() {
+            currentUser = null;
+            localStorage.removeItem('TSS_LOGGED_CUSTOMER');
+            checkUserLoginState();
+            alert("Anda telah keluar dari akun.");
+        }
+
+        function parseVariants(vData) {
+            if (Array.isArray(vData)) return vData.map(v => String(v).trim());
+            if (typeof vData === 'string' && vData.trim() !== '') return vData.split(',').map(v => v.trim());
+            return ['Original'];
+        }
+
+        function renderMenu() {
+            const grid = document.getElementById('menuGrid');
+            if(!grid) return;
+            grid.innerHTML = '';
+
+            for (let id in products) {
+                let p = products[id];
+                let varList = parseVariants(p.variants);
+                
+                if(!selectedVariants[id] && varList.length > 0) selectedVariants[id] = varList[0];
+
+                let variantButtonsHtml = varList.map((v) => {
+                    let isActive = selectedVariants[id] === v ? 'active' : '';
+                    let safeV = v.replace(/'/g, "\\'");
+                    return `<button type="button" class="btn-variant-pill ${isActive}" onclick="selectVariant('${id}', '${safeV}')">${v}</button>`;
+                }).join('');
+
+                grid.innerHTML += `
+                    <div class="product-card">
+                        <div>
+                            <img src="${p.img}" alt="${p.name}" class="product-img">
+                            <div class="product-title">${p.name}</div>
+                            <div class="stock-tag">Stok: <strong>${p.stock}</strong> | Rp ${Number(p.price).toLocaleString('id-ID')}</div>
+                            <div class="form-group">
+                                <label>Pilih Varian Rasa:</label>
+                                <div class="variant-buttons-container">${variantButtonsHtml}</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Jumlah:</label>
+                                <input type="number" id="qty-${id}" value="1" min="1" max="${p.stock}">
+                            </div>
+                        </div>
+                        <button class="btn-add" onclick="addToCart('${id}')">+ Tambah Keranjang</button>
+                    </div>
+                `;
+            }
+        }
+
+        function selectVariant(productId, variantName) {
+            selectedVariants[productId] = variantName;
+            renderMenu();
+        }
+
+        function addToCart(productId) {
+            const product = products[productId];
+            const variant = selectedVariants[productId] || 'Original';
+            const qtyInput = document.getElementById(`qty-${productId}`);
+            const qty = parseInt(qtyInput.value);
+
+            if (qty <= 0 || isNaN(qty)) return alert("Jumlah tidak valid");
+            if (qty > product.stock) return alert("Stok tidak mencukupi!");
+
+            const existingIndex = cart.findIndex(item => item.id === productId && item.variant === variant);
+            if (existingIndex > -1) cart[existingIndex].qty += qty;
+            else cart.push({ id: productId, name: product.name, price: product.price, variant: variant, qty: qty });
+
+            document.getElementById('headerCartCount').innerText = cart.reduce((sum, item) => sum + item.qty, 0);
+            alert(`${qty}x ${product.name} (${variant}) masuk ke keranjang!`);
+        }
+
+        function openCartModal() {
+            const container = document.getElementById('cartItems');
+            container.innerHTML = '';
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:var(--text-muted);">Keranjang belanja kosong.</p>';
+            } else {
+                let total = 0;
+                cart.forEach((item) => {
+                    let sub = item.price * item.qty;
+                    total += sub;
+                    container.innerHTML += `
+                        <div class="cart-item">
+                            <div><strong>${item.name}</strong><br><small style="color:var(--gold)">Varian: ${item.variant} x${item.qty}</small></div>
+                            <div>Rp ${sub.toLocaleString('id-ID')}</div>
+                        </div>
+                    `;
+                });
+                container.innerHTML += `<div style="text-align:right; font-weight:bold; color:var(--gold); margin-top:10px;">Total: Rp ${total.toLocaleString('id-ID')}</div>`;
+            }
+            document.getElementById('cartModal').style.display = 'flex';
+        }
+
+        function closeCartModal() { document.getElementById('cartModal').style.display = 'none'; }
+
+        function handlePaymentChange() {
+            const main = document.getElementById('paymentMain').value;
+            const qris = document.getElementById('qrisContainer');
+            if (main === "QRIS") {
+                let total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                document.getElementById('qrisImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=DANA-085788718308-TOTAL:${total}`;
+                qris.style.display = "block";
+            } else qris.style.display = "none";
+        }
+
+        function sendToWhatsAppAdmin() {
+            if (cart.length === 0) return alert("Keranjang belanja kosong!");
+            let payment = document.getElementById('paymentMain').value;
+            let total = 0;
+            
+            let msg = "🛒 *PESANAN BARU - TIGA SAUDARA STORE ID*\n\n";
+            if(currentUser) msg += `👤 *Pelanggan:* ${currentUser.name} (${currentUser.phone})\n\n`;
+            
+            cart.forEach((item, i) => {
+                let sub = item.price * item.qty;
+                total += sub;
+                msg += `${i+1}. *${item.name}*\n   - Varian: *${item.variant}*\n   - Qty: ${item.qty} Pcs\n   - Subtotal: Rp ${sub.toLocaleString('id-ID')}\n`;
+
+                if(products[item.id]) {
+                    let newStock = products[item.id].stock - item.qty;
+                    products[item.id].stock = newStock < 0 ? 0 : newStock;
+                    db.ref('products/' + item.id + '/stock').set(products[item.id].stock);
+                }
+            });
+
+            msg += `\n💰 *TOTAL:* Rp ${total.toLocaleString('id-ID')}\n💳 *METODE:* ${payment}\n`;
+            window.open(`https://api.whatsapp.com/send?phone=6285788718308&text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        checkUserLoginState();
+        renderMenu();
+    </script>
+</body>
+</html>
